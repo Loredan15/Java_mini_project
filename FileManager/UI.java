@@ -17,9 +17,9 @@ public class UI extends JFrame {
     private JButton backButton = new JButton("Назад");
     private JButton delButton = new JButton("Удалить");
     private JButton renameButton = new JButton("Переименовать");
-    private ArrayList <String>  dirsCache = new ArrayList<>();
+    private ArrayList<String> dirsCache = new ArrayList<>();
 
-    public UI(){
+    public UI() {
         super("Проводник");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setResizable(true);
@@ -69,16 +69,20 @@ public class UI extends JFrame {
             }
 
             @Override
-            public void mousePressed(MouseEvent e) { }
+            public void mousePressed(MouseEvent e) {
+            }
 
             @Override
-            public void mouseReleased(MouseEvent e) { }
+            public void mouseReleased(MouseEvent e) {
+            }
 
             @Override
-            public void mouseEntered(MouseEvent e) { }
+            public void mouseEntered(MouseEvent e) {
+            }
 
             @Override
-            public void mouseExited(MouseEvent e) { }
+            public void mouseExited(MouseEvent e) {
+            }
         });
 
         backButton.addActionListener(new ActionListener() {
@@ -111,9 +115,88 @@ public class UI extends JFrame {
         addButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                if (!dirsCache.isEmpty()) {
+                    String currentPath;
+                    File newFolder;
+                    CreateNewFolderJDialog newFolderJDialog = new CreateNewFolderJDialog(UI.this);
 
+                    if (newFolderJDialog.getReady()) {
+                        currentPath = toFullPath(dirsCache);
+                        newFolder = new File(currentPath, newFolderJDialog.getNewName());
+                        if (!newFolder.exists()) {
+                            newFolder.mkdir();
+                        }
+                        File updateDir = new File(currentPath);
+                        String[] updateMas = updateDir.list();
+                        DefaultListModel updateModel = new DefaultListModel();
+                        for (String str : updateMas) {
+                            File check = new File(updateDir.getPath(), str);
+                            if (!check.isHidden()) {
+                                if (check.isDirectory()) {
+                                    updateModel.addElement(str);
+                                } else {
+                                    updateModel.addElement("файл - " + str);
+                                }
+                            }
+                            fileList.setModel(updateModel);
+                        }
+                    }
+                }
             }
         });
+
+        delButton.addActionListener(e -> {
+            String selectedObject = fileList.getSelectedValue().toString();
+            String currentPath = toFullPath(dirsCache);
+            if (!selectedObject.isEmpty()) {
+                //Опасно, в корзину не попадает, а сразу удаляет безвозвратно
+                deleteDir(new File(currentPath, selectedObject));
+
+                File updateDir = new File(currentPath);
+                String[] updateMas = updateDir.list();
+                DefaultListModel updateModel = new DefaultListModel();
+
+                for (String str : updateMas) {
+                    File check = new File(updateDir.getPath(), str);
+                    if (!check.isHidden()) {
+                        if (check.isDirectory()) {
+                            updateModel.addElement(str);
+                        } else {
+                            updateModel.addElement("файл - " + str);
+                        }
+                    }
+                }
+                fileList.setModel(updateModel);
+            }
+        });
+
+        renameButton.addActionListener(e -> {
+            if(!dirsCache.isEmpty() & (fileList.getSelectedValue() != null)){
+                String currentPath = toFullPath(dirsCache);
+                String selectedObject = fileList.getSelectedValue().toString();
+                RenameJDialog renamer = new RenameJDialog(UI.this);
+                if(renamer.getReady()){
+                    File renameFile = new File(currentPath, selectedObject);
+                    renameFile.renameTo(new File(currentPath, renamer.getNewName()));
+
+                    File updateDir = new File(currentPath);
+                    String[] updateMas = updateDir.list();
+                    DefaultListModel updateModel = new DefaultListModel();
+                    for (String str : updateMas){
+                        File check = new File(updateDir.getPath(), str);
+                        if(!check.isHidden()){
+                            if(check.isDirectory()){
+                                updateModel.addElement(str);
+                            }else{
+                                updateModel.addElement("файл - " + str);
+                            }
+                        }
+                    }
+                    fileList.setModel(updateModel);
+                }
+            }
+        });
+
 
         buttonsPanel.add(backButton);
         buttonsPanel.add(addButton);
@@ -128,12 +211,22 @@ public class UI extends JFrame {
         setVisible(true);
     }
 
-    public String toFullPath (List<String> file){
+    public String toFullPath(List<String> file) {
         String listPart = "";
-        for (String str : file ) {
+        for (String str : file) {
             listPart += str;
         }
         return listPart;
+    }
+
+    public void deleteDir(File file) {
+        File[] object = file.listFiles();
+        if (object != null) {
+            for (File f : object) {
+                deleteDir(f);
+            }
+        }
+        file.delete();
     }
 
 }
